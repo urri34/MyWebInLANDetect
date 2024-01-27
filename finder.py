@@ -2,7 +2,7 @@ from threading import Thread, Lock
 import socket
 
 PORT = 80
-StringToDetect='<script src="js/sha256.min.js" type="text/javascript"></script>'
+StringToDetect='<meta name="author" content="GEEKMAGIC">'
 
 class Threader:
     def __init__(self, threads=30):
@@ -41,35 +41,47 @@ class Threader:
 
 def GetLANInfo():
     import platform
-    Interface=''
-    Mask=''
+    Interfaces=[] #[ip, mask, interface]
     if platform.system() == "Windows":
         import subprocess
         for Line in str(subprocess.run(["route", "print"], capture_output=True).stdout.decode()).split('\n'):
             if '0.0.0.0' in Line:
                 LineParts=" ".join(Line.split()).split(' ')
                 if LineParts[0]=='0.0.0.0' and LineParts[1]=='0.0.0.0':
-                    Interface=LineParts[3]
+                    Interfaces.append([LineParts[3],'',''])
                     break
-        print('Interface='+str(Interface))
-
         for Line in str(subprocess.run(["ipconfig"], capture_output=True).stdout.decode()).split('\n'):
-            if Interface in Line:
-                Mask='NextLine'
-            elif Mask=='NextLine' :
-                Mask=Line.split(':')[1].replace(' ','').rstrip()
-        print('Mask='+str(Mask))
+            if Interfaces[0][0] in Line:
+                Interfaces[0][1]='NextLine'
+            elif Interfaces[0][1]=='NextLine' :
+                Interfaces[0][1]=Line.split(':')[1].replace(' ','').rstrip()
     else:
-        pass
-    return Interface, Mask
+        import subprocess
+        Interfaces=[]
+        for Line in str(subprocess.run(["netstat", "-rn"], capture_output=True).stdout.decode()).split('\n'):
+            if '0.0.0.0' in str(Line):
+                LineParts=" ".join(Line.split()).split(' ')
+                if LineParts[0]=='0.0.0.0' and LineParts[2]=='0.0.0.0':
+                    Interfaces.append(['','',LineParts[7]])
+        InterfaceCount=0
+        for Inteface in Interfaces:
+            for Line in str(subprocess.run(["ip", "-o", "addr", "show", "dev", Inteface[2]], capture_output=True).stdout.decode()).split('\n'):
+                if 'inet' in Line and 'inet6' not in Line:
+                    LineParts=" ".join(Line.split()).split(' ')[3].split('/')
+                    Interfaces[InterfaceCount][0]=LineParts[0]
+                    Interfaces[InterfaceCount][1]=LineParts[1]
+            InterfaceCount+=1
+    print('Interfaces='+str(Interfaces))
+    return Interfaces
 
-def GetLANIps(Interface, Mask):
+def GetLANIps(Interfaces):
     import ipaddress
-    IpRange=str(Interface)+'/'+str(Mask)
     Ips=[]
-    for ip in ipaddress.ip_network(IpRange, False).hosts():
-        Ips.append(str(ip))
-    print('Ips='+str(len(Ips))+' elements')
+    for Interface in Interfaces:
+        IpRange=str(Interface[0])+'/'+str(Interface[1])
+        for Ip in ipaddress.ip_network(IpRange, False).hosts():
+            Ips.append(str(Ip))
+        print('Ips='+str(len(Ips))+' elements')
     return Ips
 
 def ConnectToPort(hostname, port):
@@ -105,10 +117,10 @@ def DetectWebContent(IpsWithPortOpen):
             if StringToDetect in str(Response.content):
                 print ('SHE IS THE ONE!')
                 Targets.append(Ip)
-        return Targets
+    return Targets
 
-Interface, Mask = GetLANInfo()
-Ips = GetLANIps(Interface, Mask)
+Interfaces = GetLANInfo()
+Ips = GetLANIps(Interfaces)
 IpsWithPortOpen=[]
 ScanIpRange(Ips)
 Targets=DetectWebContent(IpsWithPortOpen)
