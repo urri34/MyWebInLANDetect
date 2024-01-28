@@ -13,7 +13,7 @@ String to look for in the web page we get from the thing we are looking for, you
 
 ### Considerations about ip range scaned:
 
-Depending if you hace a Win environment or a Linux environment it will work slidely different:
+Depending if you hace a Win environment or a Linux environment it will work slidely different: 
 
 -  Windows
 
