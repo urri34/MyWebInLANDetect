@@ -1,7 +1,7 @@
-# LanDeviceFinder
+# MyWebInLANDetect
 Contains the python scripts I use to detect my GeekMagic SmallTV-Ultra. It wakes up with DHCP and I never know where is it. It can be used to find any kind of webserver , in any kind of ip range and can detect any kind of string in the web server serving page.
 
-## finder.py:
+## MyWebInLANDetect.py:
 ### Basic configuracion options:
 - PORT = 80
 
